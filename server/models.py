@@ -4,6 +4,7 @@ from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
 
+
 metadata = MetaData(
     naming_convention={
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
@@ -21,8 +22,10 @@ class Restaurant(db.Model, SerializerMixin):
     address = db.Column(db.String)
 
     # add relationship
+    pizzas = db.relationship('RestaurantPizza', back_populates='restaurant', cascade='all, delete-orphan')
 
     # add serialization rules
+    serialize_rules = ('-pizzas.restaurant',)
 
     def __repr__(self):
         return f"<Restaurant {self.name}>"
@@ -36,11 +39,10 @@ class Pizza(db.Model, SerializerMixin):
     ingredients = db.Column(db.String)
 
     # add relationship
+    restaurants = db.relationship('RestaurantPizza', back_populates='pizza', cascade='all, delete-orphan')
 
-    # add serialization rules
-
-    def __repr__(self):
-        return f"<Pizza {self.name}, {self.ingredients}>"
+    # Serialization rules
+    serialize_rules = ('-restaurants.pizza',)
 
 
 class RestaurantPizza(db.Model, SerializerMixin):
@@ -48,11 +50,14 @@ class RestaurantPizza(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     price = db.Column(db.Integer, nullable=False)
-
+    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurants.id'))
+    pizza_id = db.Column(db.Integer, db.ForeignKey('pizzas.id'))
+    
     # add relationships
-
+    restaurant = db.relationship('Restaurant', back_populates='pizzas')
+    pizza = db.relationship('Pizza', back_populates='restaurants')
     # add serialization rules
-
+    serialize_rules = ('-restaurant.pizzas', '-pizza.restaurants',)
     # add validation
 
     def __repr__(self):
